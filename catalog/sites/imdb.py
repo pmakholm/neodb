@@ -32,7 +32,12 @@ class IMDB(AbstractSite):
         return "https://www.imdb.com/title/" + id_value + "/"
 
     def scrape(self):
-        res_data = search_tmdb_by_imdb_id(self.id_value)
+        res_data = {}
+        try:
+            res_data = search_tmdb_by_imdb_id(self.id_value)
+        except:
+            pass
+
         url = None
         pd = None
         if (
