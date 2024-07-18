@@ -91,7 +91,9 @@ class IMDB(AbstractSite):
             "genre": (
                 [x["text"] for x in d["genres"]["genres"]] if d.get("genres") else []
             ),
-            "brief": d["plot"].get("plotText") if d.get("plot") else None,
+            "brief": (
+                d["plot"].get("plotText").get("plainText") if d.get("plot") else None
+            ),
             "cover_image_url": (
                 d["primaryImage"].get("url") if d.get("primaryImage") else None
             ),
