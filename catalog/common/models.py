@@ -44,6 +44,7 @@ class SiteName(models.TextChoices):
     Goodreads = "goodreads", _("Goodreads")  # type:ignore[reportCallIssue]
     GoogleBooks = "googlebooks", _("Google Books")  # type:ignore[reportCallIssue]
     BooksTW = "bookstw", _("BooksTW")  # type:ignore[reportCallIssue]
+    BibliotekDK = "bibliotekdk", _("Bibliotek.dk")  # type:ignore[reportCallIssue]
     IMDB = "imdb", _("IMDb")  # type:ignore[reportCallIssue]
     TMDB = "tmdb", _("TMDB")  # type:ignore[reportCallIssue]
     Bandcamp = "bandcamp", _("Bandcamp")  # type:ignore[reportCallIssue]
@@ -96,6 +97,7 @@ class IdType(models.TextChoices):
         "Douban Drama Version"
     )  # type:ignore[reportCallIssue]
     BooksTW = "bookstw", _("BooksTW Book")  # type:ignore[reportCallIssue]
+    BibliotekDK = "bibliotekdk", _("Bibliotek.dk")  # type:ignore[reportCallIssue]
     Bandcamp = "bandcamp", _("Bandcamp")  # type:ignore[reportCallIssue]
     Spotify_Album = "spotify_album", _("Spotify Album")  # type:ignore[reportCallIssue]
     Spotify_Show = "spotify_show", _("Spotify Podcast")  # type:ignore[reportCallIssue]
