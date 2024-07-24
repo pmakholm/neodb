@@ -368,6 +368,29 @@ class Work(Item):
             self.editions.clear()
         return super().delete(using, keep_parents, soft, *args, **kwargs)
 
+    def update_linked_items_from_external_resource(self, resource):
+        """add Edition from resource.metadata['required_resources'] if not yet"""
+        links = resource.required_resources + resource.related_resources
+        for e in links:
+            if e.get("model") == "Edition":
+                edition_res = ExternalResource.objects.filter(
+                    id_type=e["id_type"], id_value=e["id_value"]
+                ).first()
+                if edition_res:
+                    edition = edition_res.item
+                    if not edition:
+                        logger.warning(f"Unable to find edition for {edition_res}")
+                else:
+                    logger.warning(
+                        f'Unable to find resource for {e["id_type"]}:{e["id_value"]}'
+                    )
+                    edition = Edition.objects.filter(
+                        primary_lookup_id_type=e["id_type"],
+                        primary_lookup_id_value=e["id_value"],
+                    ).first()
+                if edition and edition not in self.editions.all():
+                    self.editions.add(edition)
+
 
 class Series(Item):
     category = ItemCategory.Book
