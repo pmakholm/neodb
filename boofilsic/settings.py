@@ -180,6 +180,9 @@ if _parsed_email_url.scheme == "anymail":
     EMAIL_BACKEND = _parsed_email_url.hostname
     ANYMAIL = dict(parse.parse_qsl(_parsed_email_url.query))
     ENABLE_LOGIN_EMAIL = True
+elif DEBUG and _parsed_email_url.scheme == "console":
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+    ENABLE_LOGIN_EMAIL = True
 elif _parsed_email_url.scheme:
     _parsed_email_config = env.email("NEODB_EMAIL_URL")
     EMAIL_TIMEOUT = 5
