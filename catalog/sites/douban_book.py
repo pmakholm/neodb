@@ -261,10 +261,15 @@ class DoubanBook_Work(AbstractSite):
         if not title:
             raise ParseError(self, "title")
         book_urls = content.xpath('//a[@class="pl2"]/@href')
+        related_resources = []
+        for url in book_urls:
+            site = SiteManager.get_site_by_url(url)
+            if site:
+                related_resources.append({"url": url})
         d = {
             "title": title,
             "localized_title": [{"lang": "zh-cn", "text": title}],
-            "edition_urls": book_urls,
+            "related_resources": related_resources,
         }
         pd = ResourceContent(metadata=d)
         return pd
