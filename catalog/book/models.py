@@ -368,6 +368,14 @@ class Work(Item):
             self.editions.clear()
         return super().delete(using, keep_parents, soft, *args, **kwargs)
 
+    @property
+    def cover_image_url(self):
+        url = super().cover_image_url
+        if url:
+            return url
+        e = next(filter(lambda e: e.cover_image_url, self.editions.all()), None)
+        return e.cover_image_url if e else None
+
     def update_linked_items_from_external_resource(self, resource):
         """add Edition from resource.metadata['required_resources'] if not yet"""
         links = resource.required_resources + resource.related_resources
