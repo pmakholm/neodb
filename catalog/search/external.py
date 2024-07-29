@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import time
+import traceback
 from urllib.parse import quote_plus, urlparse
 
 import httpx
@@ -10,6 +11,7 @@ from lxml import html
 
 from catalog.common import *
 from catalog.models import *
+from catalog.sites.bibliotek_dk import get_bibliotekdk_token
 from catalog.sites.spotify import get_spotify_token
 from catalog.sites.tmdb import TMDB_DEFAULT_LANG
 
@@ -50,6 +52,157 @@ class SearchResultItem:
     @property
     def scraped(self):
         return False
+
+
+class BibliotekDk:
+    @classmethod
+    def search(cls, q: str, page=1):
+        results = []
+        search_url = f"https://fbi-api.dbc.dk/SimpleSearch/graphql"
+        graphQuery = """
+    query all ($q: SearchQuery!, $filters: SearchFilters, $offset: Int!, $limit: PaginationLimit!, $search_exact: Boolean) {
+      search(q: $q, filters: $filters, search_exact: $search_exact) {
+        works(limit: $limit, offset: $offset) {
+          workId
+          latestPublicationDate
+          series {
+            title
+          }
+          mainLanguages {
+            isoCode
+            display
+          }
+          workTypes
+          manifestations {
+            mostRelevant{
+              pid
+              ownerWork {
+                workTypes
+              }
+              cover {
+                detail
+                origin
+              }
+              materialTypes {
+                ...materialTypesFragment
+              }
+              publisher
+              edition {
+                summary
+                edition
+              }
+            }
+          }
+          creators {
+            ...creatorsFragment
+          }
+          materialTypes {
+            ...materialTypesFragment
+          }
+          fictionNonfiction {
+            display
+          }
+          genreAndForm
+          titles {
+            main
+            full
+          }
+          abstract
+        }
+        hitcount
+      }
+      monitor(name: "bibdknext_search_all")
+    }
+    fragment creatorsFragment on Creator {
+  ... on Corporation {
+    __typename
+    display
+    nameSort
+    roles {
+      function {
+        plural
+        singular
+      }
+      functionCode
+    }
+  }
+  ... on Person {
+    __typename
+    display
+    nameSort
+    roles {
+      function {
+        plural
+        singular
+      }
+      functionCode
+    }
+  }
+}
+    fragment materialTypesFragment on MaterialType {
+  materialTypeGeneral {
+    code
+    display
+  }
+  materialTypeSpecific {
+    code
+    display
+  }
+}
+        """
+        query = {
+            "query": graphQuery,
+            "variables": {
+                "filters": {"workTypes": ["literature"]},
+                "limit": SEARCH_PAGE_SIZE,
+                "offset": (page - 1) * SEARCH_PAGE_SIZE,
+                "q": {"all": q},
+                "search_exact": False,
+            },
+        }
+        try:
+            r = requests.post(
+                search_url,
+                json=query,
+                headers={"Authorization": "Bearer " + get_bibliotekdk_token()},
+            )
+            for work in r.json()["data"]["search"]["works"]:
+                try:
+                    source_url = (
+                        "https://bibliotek.dk/materiale/title/" + work["workId"]
+                    )
+                    title = work["titles"]["full"][0]
+
+                    authors = []
+                    for creator in work["creators"]:
+                        authors.append(creator["display"])
+
+                    subtitle = ", ".join(authors)
+                    brief = work["abstract"][0] if work["abstract"] else ""
+                    cover_url = work["manifestations"]["mostRelevant"][0]["cover"][
+                        "detail"
+                    ]
+
+                    results.append(
+                        SearchResultItem(
+                            ItemCategory.Book,
+                            SiteName.BibliotekDK,
+                            source_url,
+                            title,
+                            subtitle,
+                            brief,
+                            cover_url,
+                        )
+                    )
+                except:
+                    logger.error(traceback.format_exc())
+
+        except Exception as e:
+            logger.error(traceback.format_exc())
+            logger.error(
+                "Bibliotek.dk search error", extra={"query": q, "exception": e}
+            )
+        return results
 
 
 class Goodreads:
@@ -387,6 +540,7 @@ class ExternalSources:
         if c == "all" or c == "movietv":
             results.extend(TheMovieDatabase.search(q, page))
         if c == "all" or c == "book":
+            results.extend(BibliotekDk.search(q, page))
             results.extend(GoogleBooks.search(q, page))
             results.extend(Goodreads.search(q, page))
         if c == "all" or c == "music":
